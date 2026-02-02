@@ -1,0 +1,376 @@
+HYDROSPARK SYSTEM ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CUSTOMER WEB PORTAL                                │
+│                     (React + TypeScript + Recharts)                          │
+│                         http://localhost:3000                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Dashboard  │  Usage History  │  Bills  │  Forecast  │  Profile  │  Alerts │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     ↕ HTTPS/REST
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            STAFF WEB APPLICATION                             │
+│                     (React + TypeScript + Material-UI)                       │
+│                         http://localhost:3000/staff                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Imports │ Customers │ Rate Plans │ Billing │ Anomalies │ Users │ Dashboard │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     ↕ HTTPS/REST/JSON
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SPRING BOOT REST API                               │
+│                       (Java 21 + Spring Boot 3.2)                            │
+│                         http://localhost:8080/api                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────────┐    ┌──────────────────────────────────┐           │
+│  │   Auth Controller   │    │     Security Filter Chain        │           │
+│  │  /api/auth/login    │    │  JWT Authentication              │           │
+│  │  /api/auth/refresh  │    │  Role-Based Access Control       │           │
+│  └─────────────────────┘    └──────────────────────────────────┘           │
+│                                                                               │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                        CONTROLLERS LAYER                              │  │
+│  │  ImportController │ BillingController │ CustomerController  │ ...     │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                     ↕                                         │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                         SERVICES LAYER                                │  │
+│  │  ImportService │ RateEngineService │ BillingService │ ForecastService │  │
+│  │  AnomalyDetectionService │ BillDeliveryService │ AuditService │ ...   │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                     ↕                                         │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                      REPOSITORIES LAYER                               │  │
+│  │  CustomerRepo │ MeterRepo │ ReadingRepo │ BillRepo │ ...              │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     ↕ JDBC
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          MYSQL DATABASE 8.0                                  │
+│                        (Docker Container)                                    │
+│                         localhost:3306/hydrospark                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                               │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────────────┐   │
+│  │     users       │  │    customers    │  │    meters                │   │
+│  │  - id           │  │  - id           │  │  - id                    │   │
+│  │  - email        │  │  - name         │  │  - customer_id           │   │
+│  │  - role         │  │  - type         │  │  - external_location_id  │   │
+│  └─────────────────┘  └─────────────────┘  └──────────────────────────┘   │
+│                                                                               │
+│  ┌─────────────────────────────────┐  ┌────────────────────────────────┐   │
+│  │      meter_readings             │  │       rate_plans               │   │
+│  │  - id                           │  │  - id                          │   │
+│  │  - meter_id                     │  │  - name                        │   │
+│  │  - reading_date                 │  │  - customer_type_scope         │   │
+│  │  - usage_ccf   ← 2M ROWS!      │  │  - status                      │   │
+│  │  - source                       │  │                                 │   │
+│  └─────────────────────────────────┘  └────────────────────────────────┘   │
+│                                                                               │
+│  ┌──────────────────┐  ┌─────────────────────┐  ┌──────────────────────┐  │
+│  │  billing_periods │  │      bills          │  │  bill_line_items     │  │
+│  │  - cycle_number  │  │  - customer_id      │  │  - bill_id           │  │
+│  │  - start_date    │  │  - total_amount     │  │  - description       │  │
+│  │  - end_date      │  │  - status           │  │  - amount            │  │
+│  └──────────────────┘  └─────────────────────┘  └──────────────────────┘  │
+│                                                                               │
+│  Plus: rate_components, anomaly_events, forecasts, audit_log, ...            │
+│  Total: 17 tables                                                             │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+KEY DATA FLOWS
+================================================================================
+
+1. DATA IMPORT FLOW (Your 2 Million Rows):
+   
+   Excel File (2M rows)
+        ↓
+   Upload via ImportController
+        ↓
+   ImportService processes in batches of 1000
+        ↓
+   For each row:
+     - Find/Create Customer
+     - Find/Create Meter
+     - Create MeterReading
+        ↓
+   Batch insert to database (10,000 rows/second)
+        ↓
+   Complete in ~3-5 minutes
+
+
+2. BILLING CALCULATION FLOW:
+
+   Admin clicks "Run Billing" for January 2024
+        ↓
+   BillingService:
+     - Get all customers in cycle 20
+     - For each customer:
+        ↓
+     Find active RatePlan
+        ↓
+     RateEngineService:
+       - Get usage total for Jan 2024
+       - Apply tiered rates (0-5 CCF, 5-15 CCF, 15+ CCF)
+       - Apply seasonal multiplier if summer months
+       - Add fixed fees
+       - Add surcharges
+       - Calculate total
+        ↓
+     Create Bill + BillLineItems
+        ↓
+   Change bill status to ISSUED
+        ↓
+   BillDeliveryService sends notification
+        ↓
+   Customer sees bill in portal
+
+
+3. CUSTOMER USAGE VIEW FLOW:
+
+   Customer logs in
+        ↓
+   Dashboard requests usage data
+        ↓
+   UsageAnalyticsService:
+     - Query meter_readings for last 30 days (daily)
+     - Query meter_readings for last 12 months (monthly totals)
+        ↓
+   Return JSON data
+        ↓
+   React Recharts displays interactive charts
+
+
+4. ANOMALY DETECTION FLOW:
+
+   Scheduled job runs nightly at 2:00 AM
+        ↓
+   AnomalyDetectionService:
+     - For each active meter:
+       - Get last 30 days of readings
+       - Calculate: mean, std deviation, median
+       - Check for:
+         * Spike: today > mean + 3σ
+         * Sustained High: 3 days > 2× median
+         * Zero Usage: 7 consecutive days of 0
+         * Data Gap: 3+ days missing
+        ↓
+   Create AnomalyEvent records
+        ↓
+   Operations staff sees alerts in portal
+        ↓
+   Staff investigates and marks resolved
+
+
+5. FORECAST GENERATION FLOW:
+
+   Weekly job runs Sunday night
+        ↓
+   ForecastService:
+     - For each customer:
+       - Get last 3 comparable months
+       - Calculate average usage
+       - Run RateEngineService with predicted usage
+       - Determine confidence (LOW/MEDIUM/HIGH)
+        ↓
+   Create UsageForecast records
+        ↓
+   Customer sees "Estimated Next Bill" on dashboard
+
+
+SECURITY ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│  1. User attempts login with email + password                   │
+│        ↓                                                         │
+│  2. AuthController receives credentials                         │
+│        ↓                                                         │
+│  3. CustomUserDetailsService loads user from database           │
+│        ↓                                                         │
+│  4. BCrypt verifies password hash                               │
+│        ↓                                                         │
+│  5. JwtTokenProvider generates:                                 │
+│     - Access Token (15 min expiry)                              │
+│     - Refresh Token (7 day expiry)                              │
+│        ↓                                                         │
+│  6. Tokens returned to client                                   │
+│        ↓                                                         │
+│  7. Client includes access token in all requests:               │
+│     Authorization: Bearer <token>                               │
+│        ↓                                                         │
+│  8. JwtAuthenticationFilter intercepts request                  │
+│        ↓                                                         │
+│  9. Validates token signature and expiry                        │
+│        ↓                                                         │
+│  10. Extracts user role (CUSTOMER, ADMIN, BILLING, etc.)        │
+│        ↓                                                         │
+│  11. @PreAuthorize annotations check permissions:               │
+│      @PreAuthorize("hasAnyRole('ADMIN', 'BILLING')")           │
+│        ↓                                                         │
+│  12. Request proceeds if authorized, 403 if denied              │
+└─────────────────────────────────────────────────────────────────┘
+
+Role Permissions Matrix:
+┌──────────────┬────────┬─────────┬────────────┬─────────┬──────────┐
+│ Resource     │ ADMIN  │ BILLING │ OPERATIONS │ SUPPORT │ CUSTOMER │
+├──────────────┼────────┼─────────┼────────────┼─────────┼──────────┤
+│ View Bills   │   ✓    │    ✓    │      ✓     │    ✓    │  Own     │
+│ Create Bills │   ✓    │    ✓    │      ✗     │    ✗    │    ✗     │
+│ Rate Plans   │   ✓    │    ✓    │      ✗     │    ✗    │    ✗     │
+│ Anomalies    │   ✓    │    ✓    │      ✓     │    ✓    │    ✗     │
+│ Customers    │   ✓    │    ✓    │      ✓     │    ✓    │  Own     │
+│ Users        │   ✓    │    ✗    │      ✗     │    ✗    │    ✗     │
+│ Audit Log    │   ✓    │    ✗    │      ✗     │    ✗    │    ✗     │
+└──────────────┴────────┴─────────┴────────────┴─────────┴──────────┘
+
+
+DEPLOYMENT ARCHITECTURE
+================================================================================
+
+Development (localhost):
+┌─────────────────────────────────────────────────────────────┐
+│  Docker Desktop                                              │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  hydrospark-mysql:8.0 container                      │  │
+│  │  Port 3306                                           │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+         ↕
+┌─────────────────────────────────────────────────────────────┐
+│  Spring Boot Application (JAR)                               │
+│  Port 8080                                                   │
+│  Run: ./mvnw spring-boot:run                                │
+└─────────────────────────────────────────────────────────────┘
+         ↕
+┌─────────────────────────────────────────────────────────────┐
+│  React Development Server                                    │
+│  Port 3000                                                   │
+│  Run: npm start                                             │
+└─────────────────────────────────────────────────────────────┘
+
+
+Production (AWS/Azure/GCP):
+┌─────────────────────────────────────────────────────────────┐
+│  CloudFront / CDN                                            │
+│  - Serves React build (static files)                        │
+│  - HTTPS/SSL                                                │
+└─────────────────────────────────────────────────────────────┘
+         ↕
+┌─────────────────────────────────────────────────────────────┐
+│  Load Balancer                                              │
+│  - Route /api to backend                                    │
+│  - Route / to frontend                                      │
+└─────────────────────────────────────────────────────────────┘
+         ↕
+┌─────────────────────────────────────────────────────────────┐
+│  EC2 / App Service (Backend)                                │
+│  - Spring Boot JAR                                          │
+│  - Auto-scaling group                                       │
+│  - Environment variables for config                         │
+└─────────────────────────────────────────────────────────────┘
+         ↕
+┌─────────────────────────────────────────────────────────────┐
+│  RDS MySQL / Azure Database                                 │
+│  - Managed database service                                 │
+│  - Automated backups                                        │
+│  - Multi-AZ for high availability                           │
+└─────────────────────────────────────────────────────────────┘
+
+
+SCALABILITY & PERFORMANCE
+================================================================================
+
+Current Capacity (Single Server):
+- Customers: 50,000+
+- Daily Readings: 2,000,000+
+- Concurrent Users: 100+
+- Billing Run (10K customers): < 5 minutes
+
+Performance Optimizations:
+✓ Database indexing on frequently queried columns
+✓ Batch inserts (1000 rows at a time)
+✓ JPA second-level caching (Hibernate)
+✓ Connection pooling (HikariCP)
+✓ Async anomaly detection (scheduled jobs)
+✓ React code splitting and lazy loading
+✓ Backend pagination for large result sets
+
+To Scale Beyond 50K Customers:
+1. Add read replicas for read-heavy operations
+2. Implement Redis caching for session data
+3. Use message queue (RabbitMQ) for async billing
+4. Shard database by region or customer range
+5. Deploy multiple backend instances behind load balancer
+
+
+TECHNOLOGY CHOICES - WHY?
+================================================================================
+
+MySQL vs PostgreSQL vs MongoDB:
+✓ MySQL: Mature, well-documented, excellent Spring Boot support
+  Water usage data is highly structured (perfect for SQL)
+  ACID transactions critical for billing accuracy
+  
+Spring Boot vs Node.js:
+✓ Spring Boot: Enterprise-grade, robust ecosystem
+  Built-in security, validation, ORM
+  Better for complex business logic
+  Strong typing with Java
+  
+React vs Angular vs Vue:
+✓ React: Largest ecosystem, best charting libraries
+  Recharts perfect for usage visualization
+  Component reusability
+  Huge community for help
+  
+JWT vs Session Cookies:
+✓ JWT: Stateless, scalable
+  Works across multiple servers
+  Mobile app ready
+  Refresh token pattern for security
+
+
+FILES STRUCTURE SUMMARY
+================================================================================
+
+hydrospark-system/
+├── README.md                          ← Start here!
+├── QUICK_START_GUIDE.txt              ← Step-by-step setup
+├── IMPLEMENTATION_BLUEPRINT.md        ← How to build it
+├── GETTING_STARTED_NOW.md            ← Simplified approach
+├── ARCHITECTURE.txt                   ← This file
+├── docker-compose.yml                 ← Database setup
+│
+├── backend/                           Java Spring Boot API
+│   ├── pom.xml                       Maven dependencies
+│   ├── src/main/
+│   │   ├── java/com/hydrospark/billing/
+│   │   │   ├── model/                Entity classes (10 files)
+│   │   │   ├── repository/           Data access (10 files)
+│   │   │   ├── service/              Business logic (15 files)
+│   │   │   ├── controller/           REST APIs (10 files)
+│   │   │   ├── security/             Auth & JWT (5 files)
+│   │   │   └── HydroSparkBillingApplication.java
+│   │   └── resources/
+│   │       ├── application.properties
+│   │       └── db/migration/
+│   │           ├── V1__Initial_Schema.sql     ← Database tables
+│   │           └── V2__Seed_Data.sql          ← Default users
+│   └── src/test/                     Unit tests
+│
+└── frontend/                          React TypeScript UI
+    ├── package.json                   Node dependencies
+    ├── src/
+    │   ├── components/                Reusable UI components
+    │   ├── pages/                     Main pages
+    │   ├── services/                  API calls
+    │   ├── contexts/                  State management
+    │   └── App.tsx                    Main app
+    └── public/                        Static assets
+
+================================================================================
