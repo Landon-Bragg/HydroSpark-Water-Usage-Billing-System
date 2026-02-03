@@ -1,8 +1,0 @@
-#!/bin/sh
-# Maven Wrapper script
-
-if [ -z "$MAVEN_OPTS" ]; then
-  MAVEN_OPTS="-Xmx1024m"
-fi
-
-exec mvn "$@"
