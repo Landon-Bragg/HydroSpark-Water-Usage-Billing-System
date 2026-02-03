@@ -277,7 +277,7 @@ CREATE TABLE import_runs (
 CREATE TABLE import_errors (
     id CHAR(36) PRIMARY KEY,
     import_run_id CHAR(36) NOT NULL,
-    line_number INT NOT NULL,
+    row_number INT NOT NULL,
     error_type VARCHAR(100) NOT NULL,
     error_message TEXT NOT NULL,
     row_data JSON,
