@@ -4,27 +4,27 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
+    
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.2</version>
+        <version>3.2.1</version>
         <relativePath/>
     </parent>
-
+    
     <groupId>com.hydrospark</groupId>
-    <artifactId>billing-system</artifactId>
+    <artifactId>water-billing-system</artifactId>
     <version>1.0.0</version>
-    <name>HydroSpark Billing System</name>
-    <description>Water usage measurement and billing system</description>
-
+    <name>HydroSpark Water Billing System</name>
+    <description>Water usage measurement and billing system for HydroSpark</description>
+    
     <properties>
         <java.version>21</java.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
+    
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -46,12 +46,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-
+        
         <!-- Database -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -59,6 +59,7 @@
             <scope>runtime</scope>
         </dependency>
         
+        <!-- Flyway for database migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -68,53 +69,69 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
         </dependency>
-
+        
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>0.12.3</version>
         </dependency>
+        
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
+        
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- Apache POI for Excel -->
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi-ooxml</artifactId>
-            <version>5.2.5</version>
-        </dependency>
-
-        <!-- Lombok -->
+        
+        <!-- Lombok for reducing boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <!-- OpenAPI/Swagger -->
+        
+        <!-- Apache POI for Excel file processing -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+        
+        <!-- Apache Commons Math for statistical analysis -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
+        </dependency>
+        
+        <!-- ModelMapper for DTO mapping -->
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+        
+        <!-- Springdoc OpenAPI for API documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.3.0</version>
         </dependency>
-
-        <!-- JSON Processing -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-
+        
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -127,14 +144,16 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-
+        
+        <!-- DevTools for hot reload -->
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
-
+    
     <build>
         <plugins>
             <plugin>
