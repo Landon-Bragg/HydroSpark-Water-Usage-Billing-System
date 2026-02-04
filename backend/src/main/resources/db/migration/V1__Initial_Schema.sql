@@ -19,9 +19,10 @@ CREATE TABLE users (
     id VARCHAR(36) PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
+    first_name VARCHAR(100) NOT NULL DEFAULT 'System', -- Added default for simpler seeding
+    last_name VARCHAR(100) NOT NULL DEFAULT 'User',    -- Added default for simpler seeding
     role ENUM('ADMIN', 'BILLING', 'OPERATIONS', 'SUPPORT', 'CUSTOMER') NOT NULL,
+    customer_id VARCHAR(36) NULL, -- ADDED: Missing column
     is_active BOOLEAN DEFAULT TRUE,
     failed_login_attempts INT DEFAULT 0,
     last_login_attempt TIMESTAMP NULL,
@@ -30,6 +31,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
     INDEX idx_role (role)
+    -- Note: Foreign key added later to avoid circular dependency
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Customers table
@@ -49,6 +51,12 @@ CREATE TABLE customers (
     billing_city VARCHAR(100),
     billing_state VARCHAR(2),
     billing_zip_code VARCHAR(10),
+    billing_cycle_number INT DEFAULT 1, -- Added to match V2 seed data expectations
+    customer_type ENUM('RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL') DEFAULT 'RESIDENTIAL', -- Added for V2 compatibility
+    mailing_address_line1 VARCHAR(255), -- Added for V2 compatibility
+    mailing_city VARCHAR(100), -- Added for V2 compatibility
+    mailing_state VARCHAR(2), -- Added for V2 compatibility
+    mailing_zip VARCHAR(10), -- Added for V2 compatibility
     is_active BOOLEAN DEFAULT TRUE,
     auto_pay BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,12 +67,21 @@ CREATE TABLE customers (
     INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Now add the foreign key to users (linking to customers)
+ALTER TABLE users ADD CONSTRAINT fk_users_customer 
+FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+
 -- Meters table
 CREATE TABLE meters (
     id VARCHAR(36) PRIMARY KEY,
-    meter_number VARCHAR(50) NOT NULL UNIQUE,
     customer_id VARCHAR(36) NOT NULL,
-    installation_date DATE NOT NULL,
+    external_location_id VARCHAR(50), -- Added for V2 compatibility
+    service_address_line1 VARCHAR(255), -- Added for V2 compatibility
+    service_city VARCHAR(100), -- Added for V2 compatibility
+    service_state VARCHAR(2), -- Added for V2 compatibility
+    service_zip VARCHAR(10), -- Added for V2 compatibility
+    meter_number VARCHAR(50), -- Made nullable for flexibility
+    installation_date DATE DEFAULT (CURRENT_DATE), -- Default added
     meter_type VARCHAR(50) DEFAULT 'STANDARD',
     status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE') DEFAULT 'ACTIVE',
     last_reading_date DATE,
@@ -98,22 +115,22 @@ CREATE TABLE rate_plans (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    plan_type ENUM('RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL') DEFAULT 'RESIDENTIAL',
-    is_active BOOLEAN DEFAULT TRUE,
-    effective_date DATE NOT NULL,
-    end_date DATE NULL,
+    customer_type_scope ENUM('RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL') DEFAULT 'RESIDENTIAL', -- Renamed from plan_type to match V2
+    status ENUM('ACTIVE', 'INACTIVE', 'DRAFT') DEFAULT 'ACTIVE', -- Renamed/Changed from boolean is_active
+    effective_start_date DATE NOT NULL, -- Renamed from effective_date
+    effective_end_date DATE NULL, -- Renamed from end_date
+    created_by VARCHAR(36), -- Added for audit
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_active (is_active),
-    INDEX idx_plan_type (plan_type),
-    INDEX idx_effective_date (effective_date)
+    INDEX idx_status (status),
+    INDEX idx_customer_type (customer_type_scope)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Rate components table (for tiered pricing, seasonal rates, surcharges, etc.)
 CREATE TABLE rate_components (
     id VARCHAR(36) PRIMARY KEY,
     rate_plan_id VARCHAR(36) NOT NULL,
-    component_type ENUM('BASE_FEE', 'TIER', 'SEASONAL_MULTIPLIER', 'SURCHARGE', 'DISCOUNT') NOT NULL,
+    component_type ENUM('BASE_FEE', 'TIERED_USAGE', 'SEASONAL_MULTIPLIER', 'SURCHARGE_PERCENT', 'FIXED_FEE', 'DISCOUNT') NOT NULL, -- Updated ENUMs for V2
     name VARCHAR(100) NOT NULL,
     config_json JSON NOT NULL,
     sort_order INT DEFAULT 0,
@@ -235,85 +252,3 @@ CREATE TABLE audit_logs (
     INDEX idx_action (action),
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Insert default admin user
--- Password: Admin123! (BCrypt hashed)
-INSERT INTO users (id, email, password_hash, first_name, last_name, role, is_active)
-VALUES (
-    UUID(),
-    'admin@hydrospark.com',
-    '$2a$10$XQjZ9Y8Z9Y8Z9Y8Z9Y8Z9eJ6K4N5M6L7P8Q9R0S1T2U3V4W5X6Y7Z8',
-    'System',
-    'Administrator',
-    'ADMIN',
-    TRUE
-);
-
--- Insert default rate plan
-INSERT INTO rate_plans (id, name, description, plan_type, is_active, effective_date)
-VALUES (
-    UUID(),
-    'Standard Residential',
-    'Standard tiered rate plan for residential customers',
-    'RESIDENTIAL',
-    TRUE,
-    '2024-01-01'
-);
-
--- Insert default rate components for the standard plan
-SET @rate_plan_id = (SELECT id FROM rate_plans WHERE name = 'Standard Residential' LIMIT 1);
-
--- Base fee
-INSERT INTO rate_components (id, rate_plan_id, component_type, name, config_json, sort_order)
-VALUES (
-    UUID(),
-    @rate_plan_id,
-    'BASE_FEE',
-    'Monthly Base Fee',
-    JSON_OBJECT('amount', 15.00),
-    1
-);
-
--- Tier 1: 0-5000 gallons
-INSERT INTO rate_components (id, rate_plan_id, component_type, name, config_json, sort_order)
-VALUES (
-    UUID(),
-    @rate_plan_id,
-    'TIER',
-    'Tier 1 (0-5000 gallons)',
-    JSON_OBJECT('min_usage', 0, 'max_usage', 5000, 'rate_per_gallon', 0.003),
-    2
-);
-
--- Tier 2: 5001-10000 gallons
-INSERT INTO rate_components (id, rate_plan_id, component_type, name, config_json, sort_order)
-VALUES (
-    UUID(),
-    @rate_plan_id,
-    'TIER',
-    'Tier 2 (5001-10000 gallons)',
-    JSON_OBJECT('min_usage', 5001, 'max_usage', 10000, 'rate_per_gallon', 0.004),
-    3
-);
-
--- Tier 3: 10001+ gallons
-INSERT INTO rate_components (id, rate_plan_id, component_type, name, config_json, sort_order)
-VALUES (
-    UUID(),
-    @rate_plan_id,
-    'TIER',
-    'Tier 3 (10001+ gallons)',
-    JSON_OBJECT('min_usage', 10001, 'max_usage', 999999, 'rate_per_gallon', 0.005),
-    4
-);
-
--- Summer surcharge (June, July, August)
-INSERT INTO rate_components (id, rate_plan_id, component_type, name, config_json, sort_order)
-VALUES (
-    UUID(),
-    @rate_plan_id,
-    'SEASONAL_MULTIPLIER',
-    'Summer Peak Multiplier',
-    JSON_OBJECT('applies_months', JSON_ARRAY(6, 7, 8), 'multiplier', 1.15),
-    5
-);

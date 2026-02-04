@@ -7,7 +7,7 @@ INSERT INTO users (id, email, password_hash, role, customer_id, is_active)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
     'admin@hydrospark.com',
-    '$2a$10$XQ8EYVy4YOr5Z3vMVqH9YO7ZJGk8O/6.tJp3lLrP8u.jZkL9YYf1O',
+    '$2a$10$G2OheeEt0dVy2oNAw5mM5OlviRp8gv43Uk2Y4Ip4.Nu63pNABWQUq',
     'ADMIN',
     NULL,
     TRUE
@@ -19,7 +19,7 @@ INSERT INTO users (id, email, password_hash, role, customer_id, is_active)
 VALUES (
     '00000000-0000-0000-0000-000000000002',
     'billing@hydrospark.com',
-    '$2a$10$5HQ9p9rKKOv/5QXC.KhZkOjHp3l.TL7nKI6CkK9vFJ7aE0H8O1kGG',
+    '$2a$10$ASaT5h/1au8jWR0Z0lH7B.49SKdOX.2GK37eozAYnBTLvQFHJbxwK',
     'BILLING',
     NULL,
     TRUE
@@ -31,7 +31,7 @@ INSERT INTO users (id, email, password_hash, role, customer_id, is_active)
 VALUES (
     '00000000-0000-0000-0000-000000000003',
     'operations@hydrospark.com',
-    '$2a$10$HjWnQ8t9Y6zQxP7s.F9CUueKd3p.R3nZ5X3yR7fP6gK2hL0qM8N9W',
+    '$2a$10$UwuTg8qJeWVw3AxQO7uMruzvVVADbM3qc.TGfdx0aT/5/pXas9ItO',
     'OPERATIONS',
     NULL,
     TRUE
@@ -43,25 +43,49 @@ INSERT INTO users (id, email, password_hash, role, customer_id, is_active)
 VALUES (
     '00000000-0000-0000-0000-000000000004',
     'support@hydrospark.com',
-    '$2a$10$9JqK4n7o2L5qP8m.G9FVxeH6k4r.U1pY7W5vN3jF8hM3jP0rL2Q8S',
+    '$2a$10$veMcDUCMZ7uWk0unqzgMq.UybWN.xSkxnuMO2OfjqA6RSQgHH5HYm',
     'SUPPORT',
     NULL,
     TRUE
 );
 
 -- Insert a demo customer
-INSERT INTO customers (id, name, customer_type, phone, email, mailing_address_line1, mailing_city, mailing_state, mailing_zip, billing_cycle_number)
+-- FIXED: Split name into first/last, added account_number, added service address fields
+INSERT INTO customers (
+    id, 
+    account_number, 
+    first_name, 
+    last_name, 
+    phone, 
+    email, 
+    service_address, 
+    city, 
+    state, 
+    zip_code, 
+    mailing_address_line1, 
+    mailing_city, 
+    mailing_state, 
+    mailing_zip, 
+    billing_cycle_number, 
+    customer_type
+)
 VALUES (
     '00000000-0000-0000-0000-000000000100',
-    'Demo Customer',
-    'RESIDENTIAL',
+    'CUST-001', 
+    'Demo', 
+    'Customer', 
     '555-0100',
     'customer@example.com',
+    '123 Main Street', 
+    'Dallas', 
+    'TX', 
+    '75201',
     '123 Main Street',
     'Dallas',
     'TX',
     '75201',
-    20
+    20,
+    'RESIDENTIAL'
 );
 
 -- Insert demo customer user
@@ -70,7 +94,7 @@ INSERT INTO users (id, email, password_hash, role, customer_id, is_active)
 VALUES (
     '00000000-0000-0000-0000-000000000005',
     'customer@hydrospark.com',
-    '$2a$10$R7vK3p8n4M2qL9o.H8GWzuF5l3s.V2qX6Y4wO2kG7iN2kQ1sM9P0T',
+    '$2a$10$Hrz8H5qYewCPisl/SyGdm.My1hOJm2guGVcUAROFPOneLOEmzt2da',
     'CUSTOMER',
     '00000000-0000-0000-0000-000000000100',
     TRUE

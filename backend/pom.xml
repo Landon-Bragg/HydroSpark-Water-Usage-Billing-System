@@ -23,7 +23,6 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Pin versions that matter -->
         <lombok.version>1.18.32</lombok.version>
         <jjwt.version>0.12.3</jjwt.version>
         <poi.version>5.2.5</poi.version>
@@ -32,7 +31,6 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -58,14 +56,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
-        <!-- Database -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway for database migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -76,7 +72,6 @@
             <artifactId>flyway-mysql</artifactId>
         </dependency>
 
-        <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -97,7 +92,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Lombok (compile-time only) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -105,7 +99,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Apache POI for Excel file processing -->
         <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi</artifactId>
@@ -118,28 +111,24 @@
             <version>${poi.version}</version>
         </dependency>
 
-        <!-- Apache Commons Math for statistical analysis -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
         </dependency>
 
-        <!-- ModelMapper for DTO mapping -->
         <dependency>
             <groupId>org.modelmapper</groupId>
             <artifactId>modelmapper</artifactId>
             <version>${modelmapper.version}</version>
         </dependency>
 
-        <!-- Springdoc OpenAPI for API documentation -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -152,7 +141,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- DevTools for hot reload -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -163,7 +151,6 @@
 
     <build>
         <plugins>
-            <!-- Ensures Lombok annotation processing works reliably (esp. on Windows/Java 21) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -183,6 +170,17 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                    <configuration>
+                        <url>jdbc:mysql://localhost:3307/hydrospark</url>
+                        <user>Hydrospark</user>
+                        <password>Hydrospark123</password>
+                        <cleanDisabled>false</cleanDisabled>
+                    </configuration>
             </plugin>
         </plugins>
     </build>
