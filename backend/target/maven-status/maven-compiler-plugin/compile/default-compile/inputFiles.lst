@@ -33,6 +33,7 @@ C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hyd
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\User.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\dto\LoginRequest.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\dto\MeterDTO.java
+C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\config\ApplicationConfig.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\service\RateEngineService.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\ImportRunRepository.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\service\EmailService.java
@@ -40,6 +41,7 @@ C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hyd
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\BillingPeriodRepository.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\AnomalyEventRepository.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\controller\CustomerController.java
+C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\config\CorsConfig.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\security\CustomUserDetailsService.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\Customer.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\CustomerRepository.java
