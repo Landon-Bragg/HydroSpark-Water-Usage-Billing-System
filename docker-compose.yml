@@ -10,7 +10,7 @@ services:
       MYSQL_USER: hydrospark
       MYSQL_PASSWORD: hydrospark123
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql-init:/docker-entrypoint-initdb.d

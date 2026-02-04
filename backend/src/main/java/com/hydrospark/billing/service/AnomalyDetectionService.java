@@ -94,29 +94,30 @@ public class AnomalyDetectionService {
 
         // Check each recent reading for anomalies
         for (MeterReading reading : recentReadings) {
-            // Check for spike
+
+            // Spike
             if (detectSpike(reading, stats)) {
-                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.SPIKE, 
+                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.SPIKE,
                         AnomalyEvent.Severity.HIGH, stats);
                 anomaliesDetected++;
             }
 
-            // Check for zero usage
+            // Zero usage
             if (detectZeroUsage(meter, reading.getReadingDate())) {
-                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.ZERO_USAGE, 
+                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.ZERO_USAGE,
                         AnomalyEvent.Severity.MEDIUM, stats);
                 anomaliesDetected++;
             }
 
-            // Check for sustained high usage
+            // Sustained high usage
             if (detectSustainedHighUsage(meter, reading.getReadingDate(), stats)) {
-                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.SUSTAINED_HIGH, 
+                createAnomalyEvent(meter, reading, AnomalyEvent.EventType.SUSTAINED_HIGH,
                         AnomalyEvent.Severity.HIGH, stats);
                 anomaliesDetected++;
             }
         }
 
-        // Check for data gaps
+        // Data gaps
         if (detectDataGap(readings, endDate)) {
             createDataGapAnomaly(meter, endDate);
             anomaliesDetected++;
@@ -133,7 +134,7 @@ public class AnomalyDetectionService {
         double usage = reading.getUsageCcf().doubleValue();
         double threshold = stats.mean + (SPIKE_THRESHOLD_SIGMA * stats.stdDev);
 
-        return usage > threshold && usage > stats.mean * 1.5; // At least 50% above mean
+        return usage > threshold && usage > stats.mean * 1.5;
     }
 
     private boolean detectZeroUsage(Meter meter, LocalDate date) {
@@ -146,7 +147,6 @@ public class AnomalyDetectionService {
             return false;
         }
 
-        // Check if all readings are zero
         return zeroReadings.stream()
                 .allMatch(r -> r.getUsageCcf().compareTo(BigDecimal.ZERO) == 0);
     }
@@ -163,15 +163,12 @@ public class AnomalyDetectionService {
 
         double threshold = stats.mean * SUSTAINED_HIGH_MULTIPLIER;
 
-        // Check if all readings are above threshold
         return highReadings.stream()
                 .allMatch(r -> r.getUsageCcf().doubleValue() > threshold);
     }
 
     private boolean detectDataGap(List<MeterReading> readings, LocalDate endDate) {
-        if (readings.isEmpty()) {
-            return false;
-        }
+        if (readings.isEmpty()) return false;
 
         LocalDate lastReading = readings.get(readings.size() - 1).getReadingDate();
         long daysSinceLastReading = java.time.temporal.ChronoUnit.DAYS.between(lastReading, endDate);
@@ -179,13 +176,14 @@ public class AnomalyDetectionService {
         return daysSinceLastReading >= DATA_GAP_DAYS;
     }
 
-    private void createAnomalyEvent(Meter meter, MeterReading reading, 
-                                   AnomalyEvent.EventType eventType, 
+    private void createAnomalyEvent(Meter meter, MeterReading reading,
+                                   AnomalyEvent.EventType eventType,
                                    AnomalyEvent.Severity severity,
                                    UsageStatistics stats) {
-        // Check if anomaly already exists for this date
+
+        // Avoid duplicates: same meter/date/type while OPEN
         Optional<AnomalyEvent> existing = anomalyEventRepository.findByMeterId(meter.getId()).stream()
-                .filter(a -> a.getEventDate().equals(reading.getReadingDate()) 
+                .filter(a -> a.getEventDate().equals(reading.getReadingDate())
                         && a.getEventType() == eventType
                         && a.getStatus() == AnomalyEvent.Status.OPEN)
                 .findFirst();
@@ -212,11 +210,10 @@ public class AnomalyDetectionService {
 
         anomalyEventRepository.save(anomaly);
 
-        log.info("Anomaly detected: {} for meter {} on {}", eventType, meter.getExternalLocationId(), 
+        log.info("Anomaly detected: {} for meter {} on {}", eventType, meter.getExternalLocationId(),
                 reading.getReadingDate());
 
-        // Send alert email to customer
-        if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {
+        if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
             emailService.sendAnomalyAlertEmail(customer.getEmail(), customer.getName(), description);
         }
     }
@@ -242,8 +239,7 @@ public class AnomalyDetectionService {
         log.warn("Data gap detected for meter {}", meter.getExternalLocationId());
     }
 
-    private String buildDescription(AnomalyEvent.EventType eventType, MeterReading reading, 
-                                   UsageStatistics stats) {
+    private String buildDescription(AnomalyEvent.EventType eventType, MeterReading reading, UsageStatistics stats) {
         double usage = reading.getUsageCcf().doubleValue();
 
         return switch (eventType) {
@@ -252,13 +248,11 @@ public class AnomalyDetectionService {
                     usage, usage / stats.mean, stats.mean);
 
             case SUSTAINED_HIGH -> String.format(
-                    "Sustained high usage detected over %d days: %.1f CCF/day (%.1fx normal). " +
-                    "This may indicate a leak.",
+                    "Sustained high usage detected over %d days: %.1f CCF/day (%.1fx normal). This may indicate a leak.",
                     SUSTAINED_HIGH_DAYS, usage, usage / stats.mean);
 
             case ZERO_USAGE -> String.format(
-                    "Zero usage detected for %d consecutive days. This may indicate a meter issue " +
-                    "or property vacancy.",
+                    "Zero usage detected for %d consecutive days. This may indicate a meter issue or property vacancy.",
                     ZERO_USAGE_DAYS);
 
             default -> "Unusual usage pattern detected";
@@ -266,17 +260,13 @@ public class AnomalyDetectionService {
     }
 
     private UsageStatistics calculateStatistics(List<MeterReading> readings) {
-        if (readings.isEmpty()) {
-            return new UsageStatistics(0, 0);
-        }
+        if (readings.isEmpty()) return new UsageStatistics(0, 0);
 
-        // Calculate mean
         double sum = readings.stream()
                 .mapToDouble(r -> r.getUsageCcf().doubleValue())
                 .sum();
         double mean = sum / readings.size();
 
-        // Calculate standard deviation
         double variance = readings.stream()
                 .mapToDouble(r -> {
                     double diff = r.getUsageCcf().doubleValue() - mean;
@@ -284,9 +274,7 @@ public class AnomalyDetectionService {
                 })
                 .sum() / readings.size();
 
-        double stdDev = Math.sqrt(variance);
-
-        return new UsageStatistics(mean, stdDev);
+        return new UsageStatistics(mean, Math.sqrt(variance));
     }
 
     /**
