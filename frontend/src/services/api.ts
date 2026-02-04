@@ -1,13 +1,10 @@
 import axios from 'axios';
 import { authStorageKeys } from '../contexts/AuthContext';
 
-// Supports both CRA (process.env.REACT_APP_*) and Vite (import.meta.env.VITE_*)
+// FIXED: Removed import.meta check to satisfy React Scripts (Webpack)
 function getBaseUrl(): string {
-  // @ts-ignore
-  const vite = (import.meta as any)?.env?.VITE_API_BASE_URL;
-  const cra = (process as any)?.env?.REACT_APP_API_BASE_URL;
-  // If proxy is configured, empty baseURL works fine.
-  return (vite || cra || '').toString().replace(/\/$/, '');
+  const cra = process.env.REACT_APP_API_BASE_URL;
+  return (cra || '').toString().replace(/\/$/, '');
 }
 
 export const api = axios.create({
@@ -68,7 +65,6 @@ api.interceptors.response.use(
       const refreshed = await authService.refresh(refreshToken);
 
       localStorage.setItem(authStorageKeys.accessToken, refreshed.accessToken);
-      // refresh token stays the same, but if backend rotates it, store it:
       if (refreshed.refreshToken) {
         localStorage.setItem(authStorageKeys.refreshToken, refreshed.refreshToken);
       }

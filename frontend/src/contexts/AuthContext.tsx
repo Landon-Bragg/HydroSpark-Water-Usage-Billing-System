@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { authService } from '../services/authService';
 
 export type UserRole = 'ADMIN' | 'BILLING' | 'OPERATIONS' | 'SUPPORT' | 'CUSTOMER';
@@ -33,6 +33,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // FIXED: wrapped in useCallback
+  const persistSession = useCallback((newAccess: string, newRefresh: string, newUser: AuthUser) => {
+    setAccessToken(newAccess);
+    setRefreshToken(newRefresh);
+    setUser(newUser);
+    localStorage.setItem(LS_KEYS.accessToken, newAccess);
+    localStorage.setItem(LS_KEYS.refreshToken, newRefresh);
+    localStorage.setItem(LS_KEYS.user, JSON.stringify(newUser));
+  }, []);
+
+  // FIXED: wrapped in useCallback
+  const clearSession = useCallback(() => {
+    setAccessToken(null);
+    setRefreshToken(null);
+    setUser(null);
+    localStorage.removeItem(LS_KEYS.accessToken);
+    localStorage.removeItem(LS_KEYS.refreshToken);
+    localStorage.removeItem(LS_KEYS.user);
+  }, []);
+
   // boot
   useEffect(() => {
     const boot = async () => {
@@ -45,8 +65,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (storedAccess) setAccessToken(storedAccess);
         if (storedRefresh) setRefreshToken(storedRefresh);
 
-        // If we have a refresh token but no access token (or an expired one),
-        // attempt a refresh once on boot.
         if (storedRefresh && !storedAccess) {
           const res = await authService.refresh(storedRefresh);
           persistSession(res.accessToken, res.refreshToken, {
@@ -57,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } catch (e) {
-        // If boot fails, clear local storage
         clearSession();
       } finally {
         setLoading(false);
@@ -65,28 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     boot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [persistSession, clearSession]);
 
-  const persistSession = (newAccess: string, newRefresh: string, newUser: AuthUser) => {
-    setAccessToken(newAccess);
-    setRefreshToken(newRefresh);
-    setUser(newUser);
-    localStorage.setItem(LS_KEYS.accessToken, newAccess);
-    localStorage.setItem(LS_KEYS.refreshToken, newRefresh);
-    localStorage.setItem(LS_KEYS.user, JSON.stringify(newUser));
-  };
-
-  const clearSession = () => {
-    setAccessToken(null);
-    setRefreshToken(null);
-    setUser(null);
-    localStorage.removeItem(LS_KEYS.accessToken);
-    localStorage.removeItem(LS_KEYS.refreshToken);
-    localStorage.removeItem(LS_KEYS.user);
-  };
-
-  const login = async (email: string, password: string) => {
+  // FIXED: wrapped in useCallback
+  const login = useCallback(async (email: string, password: string) => {
     const res = await authService.login(email, password);
     persistSession(res.accessToken, res.refreshToken, {
       userId: res.userId,
@@ -94,13 +93,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role: res.role as any,
       customerId: res.customerId,
     });
-  };
+  }, [persistSession]);
 
-  const logout = () => {
-    // best-effort backend logout; ignore errors
+  // FIXED: wrapped in useCallback
+  const logout = useCallback(() => {
     authService.logout().catch(() => {});
     clearSession();
-  };
+  }, [clearSession]);
 
   const value = useMemo<AuthState>(() => ({
     user,
@@ -109,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     logout,
-  }), [user, accessToken, refreshToken, loading]);
+  }), [user, accessToken, refreshToken, loading, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

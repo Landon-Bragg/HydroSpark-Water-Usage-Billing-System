@@ -34,9 +34,9 @@ interface AnomalyEventDTO {
   severity: string;
   description: string;
   status: string;
-  createdBy?: string;
-  resolvedBy?: string;
-  resolutionNote?: string;
+  createdBy?: string | null;
+  resolvedBy?: string | null;
+  resolutionNote?: string | null;
 }
 
 export default function AnomaliesTab() {
@@ -65,7 +65,7 @@ export default function AnomaliesTab() {
     setError(null);
     try {
       const data = await staffService.listAnomalies(statusFilter || undefined, severityFilter || undefined);
-      setAnomalies(data);
+      setAnomalies(data as AnomalyEventDTO[]);
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load anomalies');
     } finally {
