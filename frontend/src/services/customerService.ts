@@ -64,41 +64,31 @@ export const customerService = {
    * The backend doesn't have a "usage history" endpoint yet.
    * For plug-and-play UI, we generate an estimated daily series from the latest forecast.
    */
+// frontend/src/services/customerService.ts
   async getUsageHistory(customerId: string): Promise<UsageDataPoint[]> {
-    const forecast = await this.getLatestForecast(customerId);
-    if (!forecast) return [];
-
-    const start = new Date(forecast.targetPeriodStart);
-    const end = new Date(forecast.targetPeriodEnd);
-    const nDays = daysBetween(start, end);
-
-    const total = Number(forecast.predictedTotalCcf);
-    const perDay = Number.isFinite(total) ? (total / nDays) : 0;
-
-    const points: UsageDataPoint[] = [];
-    for (let i = 0; i < nDays; i++) {
-      const d = new Date(start.getTime());
-      d.setDate(d.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
-      points.push({ date: iso, usageCcf: Math.max(0, perDay) });
-    }
-
-    // If the billing period is longer than 30 days, show last 30.
-    return points.slice(-30);
-  },
+    // REPLACE the fake forecast-based data with:
+    const res = await api.get(`/api/meter-readings/customer/${customerId}`, {
+      params: {
+        startDate: thirtyDaysAgo,
+        endDate: today,
+      }
+    });
+    return res.data.map(reading => ({
+      date: reading.readingDate,
+      usageCcf: Number(reading.usageCcf)
+    }));
+  }
 
   async getCurrentBill(customerId: string): Promise<BillSummary> {
-    // No bills endpoint yet -> map from forecast.
-    const forecast = await this.getLatestForecast(customerId);
-    const est = forecast ? Number(forecast.predictedTotalAmount) : 0;
-
-    // naive due date: end of forecast period (or today+14)
-    const due = forecast?.targetPeriodEnd ?? new Date(Date.now() + 14*24*60*60*1000).toISOString().slice(0,10);
-
+    // REPLACE with actual bills endpoint:
+    const res = await api.get(`/api/customers/${customerId}/bills`);
+    const bills = res.data;
+    const latest = bills[0]; // assuming sorted by date desc
+    
     return {
-      currentBill: 0,
-      estimatedNextBill: Number.isFinite(est) ? est : 0,
-      dueDate: due,
+      currentBill: latest ? Number(latest.totalAmount) : 0,
+      estimatedNextBill: estimatedAmount, // from forecast
+      dueDate: latest?.dueDate || '...'
     };
   },
 };
