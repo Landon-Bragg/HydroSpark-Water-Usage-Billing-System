@@ -27,6 +27,7 @@ C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hyd
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\BillLineItem.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\AnomalyEvent.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\MeterReading.java
+C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\model\Role.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\UserRepository.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\service\CustomerService.java
 C:\Users\landon_bragg1\Downloads\hydrospark-system\backend\src\main\java\com\hydrospark\billing\repository\UsageForecastRepository.java

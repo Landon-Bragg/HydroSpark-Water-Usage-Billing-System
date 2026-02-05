@@ -19,7 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "users")
-public class User implements UserDetails { // <--- This interface is the key
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -32,10 +32,10 @@ public class User implements UserDetails { // <--- This interface is the key
     private String passwordHash;
 
     @Column(name = "first_name", nullable = false)
-    private String firstName;
+    private String firstName = "System";
 
     @Column(name = "last_name", nullable = false)
-    private String lastName;
+    private String lastName = "User";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -45,14 +45,38 @@ public class User implements UserDetails { // <--- This interface is the key
     private String customerId;
 
     @Column(name = "is_active")
-    private boolean isActive = true;
+    private Boolean isActive = true;
+
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "last_login_attempt")
+    private LocalDateTime lastLoginAttempt;
+
+    @Column(name = "account_locked_until")
+    private LocalDateTime accountLockedUntil;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (isActive == null) {
+            isActive = true;
+        }
+        if (failedLoginAttempts == null) {
+            failedLoginAttempts = 0;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     // --- Spring Security Required Methods ---
@@ -79,7 +103,7 @@ public class User implements UserDetails { // <--- This interface is the key
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return accountLockedUntil == null || accountLockedUntil.isBefore(LocalDateTime.now());
     }
 
     @Override
@@ -89,6 +113,24 @@ public class User implements UserDetails { // <--- This interface is the key
 
     @Override
     public boolean isEnabled() {
+        return isActive != null && isActive;
+    }
+
+    // Custom getter/setter for Lombok Boolean field compatibility
+    public Boolean getIsActive() {
         return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    // Alias method for compatibility with AuthService
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAttempt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAttempt = lastLoginAt;
     }
 }
