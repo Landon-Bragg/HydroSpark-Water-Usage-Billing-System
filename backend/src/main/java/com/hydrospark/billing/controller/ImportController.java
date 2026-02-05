@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Locale;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -27,10 +28,12 @@ public class ImportController {
     private final ImportRunRepository importRunRepository;
 
     /**
-     * Upload an Excel file (XLSX) that contains a "DailyUsage" sheet.
+     * Upload XLSX or CSV usage files
      */
-    @PostMapping(value = "/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ImportService.ImportResult> importExcel(@RequestParam("file") MultipartFile file) {
+    @PostMapping(value = "/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImportService.ImportResult> importFile(
+            @RequestParam("file") MultipartFile file
+    ) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(BAD_REQUEST, "File is required");
         }
@@ -38,20 +41,42 @@ public class ImportController {
         User currentUser = authService.getCurrentUser();
         String userId = currentUser != null ? currentUser.getId() : null;
 
+        String filename = file.getOriginalFilename() != null
+                ? file.getOriginalFilename()
+                : "";
+        String lower = filename.toLowerCase(Locale.ROOT);
+
         try (InputStream in = file.getInputStream()) {
-            ImportService.ImportResult result =
-                    importService.importFromExcel(in, file.getOriginalFilename(), userId);
+            ImportService.ImportResult result;
+
+            if (lower.endsWith(".xlsx")) {
+                result = importService.importFromExcel(in, filename, userId);
+            } else if (lower.endsWith(".csv")) {
+                result = importService.importFromCsv(in, filename, userId);
+            } else {
+                throw new ResponseStatusException(
+                        BAD_REQUEST,
+                        "Unsupported file type. Upload .xlsx or .csv"
+                );
+            }
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            throw new ResponseStatusException(BAD_REQUEST, "Import failed: " + e.getMessage(), e);
+            throw new ResponseStatusException(
+                    BAD_REQUEST,
+                    "Import failed: " + e.getMessage(),
+                    e
+            );
         }
     }
 
     /**
-     * Convenience endpoint to view recent import runs.
+     * View recent import runs
      */
     @GetMapping("/runs/recent")
-    public ResponseEntity<List<ImportRun>> recentRuns(@RequestParam(defaultValue = "20") int limit) {
+    public ResponseEntity<List<ImportRun>> recentRuns(
+            @RequestParam(defaultValue = "20") int limit
+    ) {
         List<ImportRun> runs = importRunRepository.findAll()
                 .stream()
                 .sorted((a, b) -> b.getStartedAt().compareTo(a.getStartedAt()))
