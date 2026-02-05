@@ -1,2 +1,3 @@
 /backend/src/main/resources/data/water_usage_data.xlsx
 node_modules/
+hydrospark_seed.sql
