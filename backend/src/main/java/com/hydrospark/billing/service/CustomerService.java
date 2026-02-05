@@ -1,5 +1,5 @@
 package com.hydrospark.billing.service;
-
+import com.hydrospark.billing.model.Role;
 import com.hydrospark.billing.dto.CustomerDTO;
 import com.hydrospark.billing.model.Customer;
 import com.hydrospark.billing.model.Meter;
@@ -238,7 +238,7 @@ public class CustomerService {
         User user = User.builder()
                 .email(customer.getEmail())
                 .passwordHash(passwordEncoder.encode(tempPassword))
-                .role(User.Role.CUSTOMER)
+                .role(Role.CUSTOMER)
                 .customerId(customer.getId())
                 .isActive(true)
                 .failedLoginAttempts(0)

@@ -21,6 +21,8 @@ import java.util.List;
 @Table(name = "users")
 public class User implements UserDetails {
 
+    public static final String Role = null;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
