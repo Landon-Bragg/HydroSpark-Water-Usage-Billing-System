@@ -1,3 +1,3 @@
-/backend/src/main/resources/data/water_usage_data.xlsx
+/backend/src/main/resources/data/combined_output.csv
 node_modules/
 hydrospark_seed.sql

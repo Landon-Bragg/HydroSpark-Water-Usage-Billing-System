@@ -38,11 +38,9 @@ public class SecurityConfig {
             
             // 3. SET PERMISSIONS
             .authorizeHttpRequests(auth -> auth
-                // Allow Login and Registration to everyone
                 .requestMatchers("/api/auth/**", "/error").permitAll()
-                // Allow Swagger UI (for testing)
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                // Lock everything else
+                .requestMatchers("/actuator/**").permitAll()   // <-- add this
                 .anyRequest().authenticated()
             )
             

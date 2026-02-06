@@ -4,8 +4,10 @@ import { authStorageKeys } from '../contexts/AuthContext';
 // FIXED: Removed import.meta check to satisfy React Scripts (Webpack)
 function getBaseUrl(): string {
   const cra = process.env.REACT_APP_API_BASE_URL;
-  return (cra || '').toString().replace(/\/$/, '');
+  const base = (cra && cra.trim().length > 0) ? cra : "http://localhost:8080";
+  return base.replace(/\/$/, '');
 }
+
 
 export const api = axios.create({
   baseURL: getBaseUrl(),

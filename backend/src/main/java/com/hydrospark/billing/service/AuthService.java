@@ -28,7 +28,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
 
-    private static final int MAX_FAILED_ATTEMPTS = 10;
+    private static final int MAX_FAILED_ATTEMPTS = 100;
     private static final int LOCKOUT_DURATION_MINUTES = 15;
 
     @Transactional
