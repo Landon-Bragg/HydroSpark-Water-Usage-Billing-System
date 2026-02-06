@@ -1,5 +1,5 @@
 Email: admin@hydrospark.com
-Password: password
+Password: Admin123!
 
 Email: billing@hydrospark.com
 Password: Billing123!
