@@ -1,3 +1,11 @@
 /backend/src/main/resources/data/combined_output.csv
 node_modules/
 hydrospark_seed.sql
+
+# Maven build output
+backend/target/
+target/
+
+# Data files
+*.csv
+
