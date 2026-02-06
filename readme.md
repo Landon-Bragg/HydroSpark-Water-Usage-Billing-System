@@ -8,9 +8,9 @@
 ```bash
 git clone https://github.com/Landon-Bragg/HydroSpark-Water-Usage-Billing-System.git
 cd HydroSpark-Water-Usage-Billing-System
+```
 
-
-3) Frontend env
+## 3) Frontend env
 
 Create frontend/.env with:
 
